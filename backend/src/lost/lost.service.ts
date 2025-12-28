@@ -12,74 +12,54 @@ export class LostService {
     private lostRepo: Repository<LostItem>,
   ) {}
 
-  // 1. Create a new lost item
+  // STATUS UPDATE METHOD (Fix: lostRepo use kiya hai)
+  async updateStatus(id: number, status: string) {
+    const item = await this.findOne(id); // Check if exists
+    await this.lostRepo.update(id, { status: status });
+    return { message: 'Status updated successfully', id, status };
+  }
+
   async create(dto: CreateLostDto, user: User, file: Express.Multer.File) {
     const item = this.lostRepo.create({
       ...dto,
       createdBy: user,
-      // 'imageUrl' column name use kar rahe hain taake frontend se match kare
       imageUrl: file ? file.filename : undefined, 
     });
     return this.lostRepo.save(item);
   }
-  // lost.service.ts mein add karein
-async findByUserId(userId: number) {
-  return this.lostRepo.find({
-    where: { createdBy: { id: userId } },
-    order: { createdAt: 'DESC' }
-  });
-}
-  // 2. Find all lost items (with Pagination & Search)
-  async findAll(
-    page = 1,
-    limit = 10,
-    keyword?: string,
-    location?: string,
-  ) {
+
+  async findByUserId(userId: number) {
+    return this.lostRepo.find({
+      where: { createdBy: { id: userId } },
+      relations: ['createdBy'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  async findAll(page = 1, limit = 10, keyword?: string, location?: string) {
     const qb = this.lostRepo.createQueryBuilder('lost');
-    
-    // User details join karna zaroori hai details page ke liye
     qb.leftJoinAndSelect('lost.createdBy', 'user'); 
 
-    // Filter by title or description
     if (keyword) {
-      qb.andWhere(
-        '(lost.title ILIKE :keyword OR lost.description ILIKE :keyword)',
-        { keyword: `%${keyword}%` },
-      );
+      qb.andWhere('(lost.title ILIKE :keyword OR lost.description ILIKE :keyword)', { keyword: `%${keyword}%` });
     }
 
-    // Filter by location
     if (location) {
       qb.andWhere('lost.location ILIKE :location', { location: `%${location}%` });
     }
 
-    // Pagination logic
-    qb.skip((page - 1) * limit)
-      .take(limit)
-      .orderBy('lost.createdAt', 'DESC');
-
+    qb.skip((page - 1) * limit).take(limit).orderBy('lost.createdAt', 'DESC');
     const [items, total] = await qb.getManyAndCount();
 
-    return {
-      data: items,
-      total,
-      page,
-      lastPage: Math.ceil(total / limit),
-    };
+    return { data: items, total, page, lastPage: Math.ceil(total / limit) };
   }
 
-  // 3. Find Single Item by ID (Details Page ke liye)
   async findOne(id: number) {
     const item = await this.lostRepo.findOne({
       where: { id },
-      relations: ['createdBy'], // User info fetch karne ke liye
+      relations: ['createdBy'], 
     });
-
-    if (!item) {
-      throw new NotFoundException(`Item with ID ${id} not found`);
-    }
-
+    if (!item) throw new NotFoundException(`Item with ID ${id} not found`);
     return item;
   }
 }

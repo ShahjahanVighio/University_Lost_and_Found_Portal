@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+// src/found/found.entity.ts
+
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from '../users/user.entity';
 
-@Entity('found_items')
+@Entity()
 export class FoundItem {
   @PrimaryGeneratedColumn()
   id: number;
@@ -15,14 +17,16 @@ export class FoundItem {
   @Column()
   location: string;
 
-  // 1. Iska naam 'imageUrl' hona chahiye (Service se match karne ke liye)
   @Column({ nullable: true })
-  imageUrl: string; 
+  imageUrl: string;
 
-  // 2. Iska naam 'createdBy' hona chahiye
-  @ManyToOne(() => User, (user) => user.foundItems)
-  createdBy: User;
+  // YE LINE ADD KAREIN
+  @Column({ default: 'found' })
+  status: string; // 'found' or 'resolved'
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @ManyToOne(() => User, (user) => user.foundItems)
+  createdBy: User;
 }

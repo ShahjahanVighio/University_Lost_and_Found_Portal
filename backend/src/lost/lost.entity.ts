@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+// src/lost/lost.entity.ts
+
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from '../users/user.entity';
 
 @Entity()
@@ -15,12 +17,16 @@ export class LostItem {
   @Column()
   location: string;
 
-  @Column({ nullable: true }) // <--- Yeh lazmi check karein
-  imageUrl: string; 
+  @Column({ nullable: true })
+  imageUrl: string;
 
-  @ManyToOne(() => User, (user) => user.lostItems)
-  createdBy: User; // <--- Yeh 'createdBy' hona chahiye
+  // YE LINE ADD KAREIN
+  @Column({ default: 'lost' }) 
+  status: string; // 'lost' or 'resolved'
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @ManyToOne(() => User, (user) => user.lostItems)
+  createdBy: User;
 }

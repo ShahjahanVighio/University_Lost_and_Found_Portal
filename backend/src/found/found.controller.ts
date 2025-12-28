@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, UseInterceptors, UploadedFile, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, UseInterceptors, UploadedFile, Param, Patch } from '@nestjs/common';
 import { FoundService } from './found.service';
 import { CreateFoundDto } from './dto/create-found.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,8 +37,19 @@ export class FoundController {
     return this.foundService.findAll();
   }
 
+  // ✅ YE ROUTE ADD KIYA HAI: Profile page ke liye
+  @Get('user/:userId')
+  async findByUser(@Param('userId') userId: string) {
+    return this.foundService.findByUserId(+userId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.foundService.findOne(+id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.foundService.updateStatus(+id, status);
   }
 }
