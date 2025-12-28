@@ -7,37 +7,53 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       const res = await API.post('/auth/login', { email, password });
-      const payload = res.data.data || res.data;
-      const token = payload.access_token || payload.accessToken || payload.token;
       
-      const user = payload.user ? {
-        ...payload.user,
-        role: payload.user.role 
-      } : { 
-        name: email.split('@')[0], 
-        email: email, 
-        role: 'admin' 
-      };
+      // Backend se token aur user details dono nikal rahe hain
+      const token = res.data?.access_token;
+      const serverUser = res.data?.user;
 
       if (token) {
-        login(token, user);
+        // FIX: Ab role hardcoded 'admin' nahi hai, backend wala role use hoga
+        const userData = {
+          id: serverUser?.id,
+          name: serverUser?.name || email.split('@')[0],
+          email: serverUser?.email || email,
+          role: serverUser?.role || 'user' // Agar role nahi aaya to default 'user'
+        };
+
+        login(token, userData);
+        
+        // Navigation se pehle thoda gap taake context update ho jaye
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 100);
+        }, 50);
+        
       } else {
-        setError("Login response incomplete: Token missing.");
+        setError("Login failed: Token not received.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password.');
+      console.error("Login Error Details:", err.response?.data);
+      
+      const serverError = err.response?.data?.message;
+      const finalMessage = Array.isArray(serverError) 
+        ? serverError[0] 
+        : (typeof serverError === 'string' ? serverError : 'Invalid email or password.');
+
+      setError(finalMessage); 
+      setPassword(''); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,7 +62,8 @@ const Login = () => {
          style={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' }}>
       
       <div className="col-md-4 col-sm-10">
-        <div className="card border-0 shadow-lg p-4" style={{ borderRadius: '20px', backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
+        <div className="card border-0 shadow-lg p-4" 
+             style={{ borderRadius: '20px', backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255, 255, 255, 0.9)' }}>
           <div className="card-body">
             <div className="text-center mb-4">
               <h2 className="fw-bold text-dark mb-1">Welcome Back</h2>
@@ -67,12 +84,12 @@ const Login = () => {
                   className="form-control border-0 bg-light"
                   id="floatingEmail"
                   placeholder="name@example.com"
-                  style={{ borderRadius: '12px' }}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  style={{ borderRadius: '12px' }}
                 />
-                <label htmlFor="floatingEmail" className="text-muted">Email address</label>
+                <label htmlFor="floatingEmail">Email address</label>
               </div>
 
               <div className="form-floating mb-4">
@@ -81,18 +98,19 @@ const Login = () => {
                   className="form-control border-0 bg-light"
                   id="floatingPassword"
                   placeholder="Password"
-                  style={{ borderRadius: '12px' }}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  style={{ borderRadius: '12px' }}
                 />
-                <label htmlFor="floatingPassword" className="text-muted">Password</label>
+                <label htmlFor="floatingPassword">Password</label>
               </div>
 
               <button type="submit" 
+                      disabled={loading}
                       className="btn btn-dark btn-lg w-100 mb-3 shadow-sm"
-                      style={{ borderRadius: '12px', padding: '12px', fontWeight: '600', letterSpacing: '0.5px' }}>
-                Sign In
+                      style={{ borderRadius: '12px', padding: '12px', fontWeight: '600' }}>
+                {loading ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
 
